@@ -1,5 +1,4 @@
 //-----------------------------------------------------------------------------------------------------------------------------------
-
 // 		 EFI PATSARI  --   vortex - flux tube interaction
 // Expressions of the magnetic field components in spherical coordinates can be found here: https://academic.oup.com/mnras/article/385/1/531/1033831#18455886
 // (Equations A13 - A14)
