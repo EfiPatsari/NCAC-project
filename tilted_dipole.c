@@ -1,23 +1,31 @@
+//-----------------------------------------------------------------------------------------------------------------------------------
+// 		 EFI PATSARI  --   vortex - flux tube interaction
+// The magnetic field vector forms an angle with the rotational velocity vector.
+// Expressions for the tilted magnetic field components are the same dipole expressions used in the aligned_dipole.c code.
+// See mathematica for reference: https://www.wolframcloud.com/obj/efipatsari/Published/RotField.nb
+// Enter password: tilt
+//-----------------------------------------------------------------------------------------------------------------------------------
+
 # include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
-#define a       1		 // parameter a - relevant for the strength of the toroidal field
+#define a       0	     // parameter a - relevant for the strength of the toroidal field
 #define Bsurf 	1e12         // surface magnetic field in G
-#define Rstar   10            // star radius in  km
-#define Rcore   9              // star's core radius in km
+#define Rstar   10           // star radius in  km
+#define Rcore   9            // star's core radius in km
+#define  y      (M_PI/3.)    // inclination angle
+//#define r	( sqrt( varpi*varpi + z*z ) )   // spherical radius as function of cylindrical coordinates
 
-#define  y        (M_PI/3.)		// inclination angle
-//#define r	       ( sqrt( varpi*varpi + z*z ) )   // spherical radius as function of cylindrical coordinates
-
+//-----------------------------------------------------------------------------------------------------------------------------------
+//		FUNCTIONS DECLARATION
+//-----------------------------------------------------------------------------------------------------------------------------------
 
 double Theta(double varpi, double phi, double z)
 {
-//    double ex1 = pow(varpi*cos(phi),2.) + pow (z * sin(y)+ varpi*cos(y)*sin(phi),2.);
-//    double ex2 =  z * cos (y) - varpi * sin (y) * sin (phi) ;
     return (sqrt(pow(varpi*cos(phi),2.) + pow (z * sin(y)+ varpi*cos(y)*sin(phi),2.))/(z * cos (y) - varpi * sin (y) * sin (phi)));
 }
-
+//----------------------------------------------------------------------------------
 double Torus(double r, double theta) // Function that appears in the regions, where the toroidal field exists
 {
   if (   r >= 7.5      && r <= 8.5      && atan(theta) > (M_PI / 2. - 0.05)      && atan(theta) < (M_PI / 2. + 0.05))
@@ -25,10 +33,11 @@ double Torus(double r, double theta) // Function that appears in the regions, wh
       else
       {return 0.;}
 }
+//----------------------------------------------------------------------------------
 
+// 		Components of the tilted magnetic field in cylindrical coordinates
 
-// Components of the magnetic field in cylindrical coordinates
-double Bvarpi(double varpi, double phi, double z, double r, double tor) // polar component of the magnetic field
+double Bvarpi(double varpi, double phi, double z, double r, double tor) 	  // polar component of the magnetic field
 {
 //   r =  sqrt( varpi*varpi + z*z )  ;
     return  ( ( cos(phi)*(-(( Bsurf*(z*cos(y) - varpi*sin(y)*sin(phi)) * pow((pow(varpi*cos(phi),2.) + pow (z * sin(y)+ varpi*cos(y)*sin(phi),2.))/ pow(r,2.),1.5)*sqrt( pow(r,2.))*
@@ -47,9 +56,8 @@ double Bvarpi(double varpi, double phi, double z, double r, double tor) // polar
          ( Bsurf*(z*cos(y) - varpi*sin(y)*sin(phi)) *(-3.* pow(r,2.) + 5.* pow(Rstar,2.))*(z*sin( y) +  varpi* cos( y)*sin(phi)))/
           (15.* pow(r,2.)* pow(Rstar,2.)))) ));
 }
-
-
-double Bphi(double varpi, double phi, double z, double r, double tor)  // toroidal component of the magnetic field
+//----------------------------------------------------------------------------------
+double Bphi(double varpi, double phi, double z, double r, double tor) 		 // toroidal component of the magnetic field
 {
  //  r =  sqrt( varpi*varpi + z*z )  ;
           return ( -(sin(phi)*(-((tor*(z*sin(y) + varpi*cos(y)*sin(phi)))/
@@ -104,7 +112,8 @@ double Bphi(double varpi, double phi, double z, double r, double tor)  // toroid
 
           ) ;
 }
-double Bzeta(double varpi, double phi, double z, double r, double tor) // z-component of the magnetic field
+//----------------------------------------------------------------------------------
+double Bzeta(double varpi, double phi, double z, double r, double tor) 		  // z-component of the magnetic field
 {
  //  r =  sqrt( varpi*varpi + z*z )  ;
     return  (-(Bsurf*cos(y)*((5.*pow(Rstar,2.) - 3.*(pow(z,2.) + pow(varpi,2.)))*
@@ -128,41 +137,45 @@ double Bzeta(double varpi, double phi, double z, double r, double tor) // z-comp
            );
  }
 
+//-----------------------------------------------------------------------------------------------------------------------------------
+//		MAIN
+//-----------------------------------------------------------------------------------------------------------------------------------
+
 int main (void)
 {
-    double varpi  ; 			   // Calculated in km
-    double phi;				// Cylindrical angle
-    double z ;   	   			// Calculated in km
-    double length;			// vortex-line length
-    double h = 0.05;  		// Step of the calculation, in km
-    double Bp ;				// rename the polar-component of the magnetic field
-    double Bz ;					// rename the z-component of the magnetic field
-    double Bt ;					// rename the toroidal magnetic field
-    double Bmod ;		//    Calculate the magnetic field modulus
+    double varpi  ; 		// polar radius - calculated in km
+    double phi;			// cylindrical angle
+    double z ;   	   	// z cylindrical distance - calculated in km
+    double length;		// vortex-line length
+    double h = 0.05;  		// step of the calculation, in km
+    double Bp ;			// rename the polar-component of the magnetic field
+    double Bz ;			// rename the z-component of the magnetic field
+    double Bt ;			// rename the toroidal magnetic field
+    double Bmod ;		// calculate the magnetic field modulus
     double tor;
-    double theta;  		 // the polar angle of spherical coordinates as function of cylindrical coordinates
+    double theta;  		// the polar angle of spherical coordinates as function of cylindrical coordinates
     double xx, yy ;
 
     double om_crit; 		// Initial value of the \Delta\Omega_{crit}
-    double av_lag = 0.; 		//  Initial value of the average lag \Delta \bar{\Omega}
-
+    double av_lag = 0.; 	//  Initial value of the average lag \Delta \bar{\Omega}
 
     double r;
 
-
+//-----------------------------------------------------------------------------------------------------------------------------------
 	FILE *fp = fopen("AITDp3a0.txt", "w"); // Average lag / Isotropic / Tilted Dipole / angle=pi/3 /parameter a=0
 	if (fp == NULL)
 	{
     	printf("Error opening file!\n");
     	exit(1);
 	}
+//-----------------------------------------------------------------------------------------------------------------------------------
 
-   double cot_psi;    				// cotangent of angle y between z-axis and magnetic field = Bz/Bp
-   double psi = 0.1;				// minimum angle allowed to prevent infinite pinning or no pinning
+   double cot_psi;    		// cotangent of angle y between z-axis and magnetic field = Bz/Bp
+   double psi = 0.1;		// minimum angle allowed to prevent infinite pinning or no pinning
    double x =1./tan(psi);
+//-----------------------------------------------------------------------------------------------------------------------------------
 
-
-        phi = 0. ;
+	phi = 0. ;
 
   for  (varpi=0. ; varpi<=Rstar ; varpi = varpi + h)
   { 		om_crit = 0.;
@@ -179,14 +192,14 @@ int main (void)
 
    			Bmod= sqrt(pow(Bp,2.) + pow(Bz,2.) + pow(Bt,2.) );
 
-// 			cot_psi = (Bz*cos(y) - Bp*sin(y))/(Bp*cos(y) + Bz*sin(y));
-//   		        	if (cot_psi > x) 				// positive cutoff angle
-//   				{cot_psi = x; }
-//   				if(cot_psi <-x)					// negative cutoff angle
+ 			cot_psi = (Bz*cos(y) - Bp*sin(y))/(Bp*cos(y) + Bz*sin(y));
+   		        	if (cot_psi > x) 	// positive cutoff angle
+   				{cot_psi = x; }
+//   				if(cot_psi <-x)		// negative cutoff angle
 //   				{cot_psi = -x;}
    			if (r <= 0.9)  		// make sure we're inside the core
    			{
-   			  om_crit  =  om_crit + h*0.1*sqrt(Bmod*(1.e-12)); //*(cot_psi)   ;   // Calculate the critical lag \Delta\Omega_{crit}
+   			  om_crit  =  om_crit + h*0.1*sqrt(Bmod*(1.e-12))*(cot_psi);   // Calculate the critical lag \Delta\Omega_{crit} - comment out cot_psi for isotropic angle
 // 			  printf("omega crit = %e	theta = %lf		Bmod = %e \n", om_crit, theta(varpi,phi,z) , Bmod);
    		         }
 
@@ -197,9 +210,9 @@ int main (void)
         yy = varpi*sin(phi);
 	fprintf(fp, "%e     %e   %e    \n", varpi, z, av_lag);
 	}
-//      fprintf(fp,"\n");
  }
+//-----------------------------------------------------------------------------------------------------------------------------------
+	
 fclose(fp);
-
 return 0;
 }
